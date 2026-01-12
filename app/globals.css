@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand Colors */
+  --color-vk-green-light: #E8F5E9; 
+  --color-vk-green-main: #81C784;  
+  --color-vk-green-dark: #2E7D32;  
+  --color-vk-gold: #FFD700;        
+  --color-vk-gold-dark: #D4AF37;   
+  
+  /* UI Colors */
+  --background: #F1F8F5;           
+  --foreground: #1A3C29;           
+  --card-bg: #FFFFFF;
+  
+  --font-sans: 'Inter', sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-vk-green-50: #E8F5E9;
+  --color-vk-green-100: #C8E6C9;
+  --color-vk-green-200: #A5D6A7;
+  --color-vk-green-300: #81C784;
+  --color-vk-green-400: #66BB6A;
+  --color-vk-green-500: #4CAF50;
+  --color-vk-green-600: #43A047;
+  --color-vk-green-700: #388E3C;
+  --color-vk-green-800: #2E7D32;
+  --color-vk-green-900: #1B5E20;
+  
+  --color-vk-gold: var(--color-vk-gold);
+  --color-vk-gold-dark: var(--color-vk-gold-dark);
+}
+
+/* Custom Scrollbar (Cross-Browser) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-vk-green-300) var(--color-vk-green-50);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* WebKit Scrollbar (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px; /* For horizontal scrollbars */
+}
+
+::-webkit-scrollbar-track {
+  background: #E8F5E9; /* Hardcoded hex for safety */
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #81C784; /* Hardcoded hex for safety */
+  border-radius: 6px;
+  border: 3px solid #E8F5E9; /* Creates padding effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4CAF50;
+}
+
+/* Custom Utilities for Glassmorphism */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* Lenis Recommended Styles */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
+}

@@ -11,53 +11,73 @@ function AuthCallbackContent() {
 
   useEffect(() => {
     const handleAuth = async () => {
-        // Exchange the code for a session (Required for PKCE flow)
-        const code = searchParams.get('code');
-        if (code) {
-            await supabase.auth.exchangeCodeForSession(code);
-        }
+        try {
+            console.log("handleAuth triggered");
+            // Exchange the code for a session (Required for PKCE flow)
+            const code = searchParams.get('code');
+            if (code) {
+                console.log("Exchanging code for session...");
+                await supabase.auth.exchangeCodeForSession(code);
+            }
 
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error || !session) {
-            console.error("Auth error:", error);
-            router.push('/login/customer'); 
-            return;
-        }
-
-        const user = session.user;
-        const requestedRole = searchParams.get('role'); // 'customer' or 'seller'
-        const existingRole = user.user_metadata.role;
-
-        // 1. New User (No Role yet) - Assign it
-        if (!existingRole && requestedRole) {
-            setStatus("Setting up your account...");
-            await supabase.auth.updateUser({
-                data: { role: requestedRole }
-            });
-            router.push('/');
-            return;
-        }
-
-        // 2. Existing User - Check Role Match
-        if (existingRole && requestedRole) {
-            if (existingRole !== requestedRole) {
-                // Mismatch!
-                await supabase.auth.signOut();
-                alert(`Error: This email is already registered as a ${existingRole}. Please use the ${existingRole} login.`);
-                router.push(`/login/${existingRole}`);
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (error) {
+                console.error("Auth error:", error);
+                router.push('/login/customer'); 
                 return;
             }
-        }
 
-        // 3. Success (Role matches or no specific role requested)
-        router.push('/');
+            if (!session) {
+                console.log("No session found yet...");
+                // Don't redirect yet, wait for the listener if we're still loading
+                return;
+            }
+
+            console.log("Session found for user:", session.user.email);
+            const user = session.user;
+            const requestedRole = searchParams.get('role'); // 'customer' or 'seller'
+            const existingRole = user.user_metadata.role;
+
+            // 1. New User (No Role yet) - Assign it
+            if (!existingRole && requestedRole) {
+                console.log("Assigning role:", requestedRole);
+                setStatus("Setting up your account...");
+                await supabase.auth.updateUser({
+                    data: { role: requestedRole }
+                });
+                router.push('/');
+                return;
+            }
+
+            // 2. Existing User - Check Role Match
+            if (existingRole && requestedRole) {
+                if (existingRole !== requestedRole) {
+                    console.log("Role mismatch:", existingRole, "vs", requestedRole);
+                    await supabase.auth.signOut();
+                    alert(`Error: This email is already registered as a ${existingRole}. Please use the ${existingRole} login.`);
+                    router.push(`/login/${existingRole}`);
+                    return;
+                }
+            }
+
+            // 3. Success (Role matches or no specific role requested)
+            console.log("Login successful, redirecting home");
+            router.push('/');
+        } catch (err) {
+            console.error("Unexpected error in handleAuth:", err);
+            router.push('/login/customer');
+        }
     };
 
-    // Listen for the initial auth state change from the hash
+    // Run once immediately on mount in case session is already there
+    handleAuth();
+
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        handleAuth();
+      console.log("Auth event:", event);
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (session) handleAuth();
       }
     });
 

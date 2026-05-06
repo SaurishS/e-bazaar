@@ -64,8 +64,8 @@ export default function ProductGrid({ activeSlugs, searchQuery }: ProductGridPro
 
       // --- STANDARD MODE (No Search) ---
 
-      // 1. Generic Fetch (No Filter)
-      if (!activeSlugs) {
+      // 1. Generic Fetch (No Filter or Empty Filter)
+      if (!activeSlugs || activeSlugs.length === 0) {
         const res = await fetch(`https://dummyjson.com/products?limit=20&skip=${currentSkip}`);
         const data = await res.json();
         
@@ -73,12 +73,10 @@ export default function ProductGrid({ activeSlugs, searchQuery }: ProductGridPro
         
         // Add Local Products at the TOP of the initial load
         if (isInitial) {
-            // Simple Client-Side Filter for Local Products if needed later
-            // For now, just show them all at the start
             initialList = [...localProducts, ...data.products];
         }
 
-        if (initialList.length === 0) setHasMore(false);
+        if (initialList.length === 0 && localProducts.length === 0) setHasMore(false);
         else {
              setProducts(prev => isInitial ? initialList : [...prev, ...data.products]);
              setSkip(prev => prev + 20); 
@@ -88,16 +86,7 @@ export default function ProductGrid({ activeSlugs, searchQuery }: ProductGridPro
         return;
       }
 
-      // 2. Filtered Fetch (Empty List)
-      if (activeSlugs.length === 0) {
-        setProducts([]);
-        setHasMore(false);
-        setLoading(false);
-        setLoadingMore(false);
-        return;
-      }
-
-      // 3. Multi-Category Fetch
+      // 3. Multi-Category Fetch (When specific slugs are provided)
       const slugsToFetch = activeSlugs.filter(s => s !== 'custom-new');
       
       // Handle Custom Products

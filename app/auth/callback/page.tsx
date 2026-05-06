@@ -12,15 +12,37 @@ function AuthCallbackContent() {
   useEffect(() => {
     const handleAuth = async () => {
         try {
-            console.log("handleAuth triggered");
-            // Exchange the code for a session (Required for PKCE flow)
+            console.log("handleAuth triggered. URL Hash exists:", !!window.location.hash);
+            
+            // 1. Exchange the code for a session (Required for PKCE flow)
             const code = searchParams.get('code');
             if (code) {
                 console.log("Exchanging code for session...");
                 await supabase.auth.exchangeCodeForSession(code);
             }
 
-            const { data: { session }, error } = await supabase.auth.getSession();
+            // 2. Try to get session normally
+            let { data: { session }, error } = await supabase.auth.getSession();
+            
+            // 3. MANUAL FALLBACK: If hash exists but no session, try to parse it
+            // This fixes cases where the library misses the fragment
+            if (!session && window.location.hash) {
+                console.log("No session but hash found. Attempting manual session recovery...");
+                const hash = window.location.hash.substring(1);
+                const params = new URLSearchParams(hash);
+                const accessToken = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+
+                if (accessToken && refreshToken) {
+                    console.log("Manually setting session from hash...");
+                    const { data, error: setSessionError } = await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken
+                    });
+                    if (data.session) session = data.session;
+                    if (setSessionError) console.error("Manual session error:", setSessionError);
+                }
+            }
             
             if (error) {
                 console.error("Auth error:", error);
@@ -29,53 +51,51 @@ function AuthCallbackContent() {
             }
 
             if (!session) {
-                console.log("No session found yet...");
-                // Don't redirect yet, wait for the listener if we're still loading
+                console.log("Still no session found...");
                 return;
             }
 
-            console.log("Session found for user:", session.user.email);
+            console.log("Session verified for user:", session.user.email);
             const user = session.user;
             const requestedRole = searchParams.get('role'); // 'customer' or 'seller'
             const existingRole = user.user_metadata.role;
 
-            // 1. New User (No Role yet) - Assign it
+            // 4. New User (No Role yet) - Assign it
             if (!existingRole && requestedRole) {
                 console.log("Assigning role:", requestedRole);
                 setStatus("Setting up your account...");
                 await supabase.auth.updateUser({
                     data: { role: requestedRole }
                 });
-                router.push('/');
+                console.log("Role assigned, redirecting...");
+                router.replace('/'); // Use replace to clear history
                 return;
             }
 
-            // 2. Existing User - Check Role Match
+            // 5. Existing User - Check Role Match
             if (existingRole && requestedRole) {
                 if (existingRole !== requestedRole) {
                     console.log("Role mismatch:", existingRole, "vs", requestedRole);
                     await supabase.auth.signOut();
                     alert(`Error: This email is already registered as a ${existingRole}. Please use the ${existingRole} login.`);
-                    router.push(`/login/${existingRole}`);
+                    router.replace(`/login/${existingRole}`);
                     return;
                 }
             }
 
-            // 3. Success (Role matches or no specific role requested)
+            // 6. Success
             console.log("Login successful, redirecting home");
-            router.push('/');
+            router.replace('/'); // Use replace to clear history
         } catch (err) {
             console.error("Unexpected error in handleAuth:", err);
             router.push('/login/customer');
         }
     };
 
-    // Run once immediately on mount in case session is already there
     handleAuth();
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth event:", event);
+      console.log("Auth event:", event, !!session);
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         if (session) handleAuth();
       }

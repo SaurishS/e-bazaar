@@ -44,6 +44,7 @@ export default function CustomerLoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
+      // Ensure the redirect points to /auth/callback so the role assignment logic runs
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

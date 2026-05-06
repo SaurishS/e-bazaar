@@ -11,10 +11,17 @@ function AuthCallbackContent() {
 
   useEffect(() => {
     const handleAuth = async () => {
+        // Exchange the code for a session (Required for PKCE flow)
+        const code = searchParams.get('code');
+        if (code) {
+            await supabase.auth.exchangeCodeForSession(code);
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error || !session) {
-            router.push('/login/customer'); // Default fallback
+            console.error("Auth error:", error);
+            router.push('/login/customer'); 
             return;
         }
 
